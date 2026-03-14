@@ -28,7 +28,7 @@ bash
 
 ```bash
 git clone https://github.com/hydrocephal/PythonIRC.git
-cd ghostchat
+cd PythonIRC
 ```
 
 Create and activate virtual environment:
