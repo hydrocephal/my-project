@@ -12,15 +12,17 @@ def test_password_hash_and_verify():
     hashed = get_password_hash(password)
     assert verify_password(password, hashed) is True
 
+
 def test_create_access_token():
     username = "incorrectuser"
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": username}, expires_delta=access_token_expires)
-    
+
     assert isinstance(access_token, str)
-    
+
     payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     assert payload.get("sub") == username
+
 
 async def test_create_user(db):
     user_data = UserCreate(username="Pupok", password="pass")
@@ -28,6 +30,7 @@ async def test_create_user(db):
     assert register_func is not None
     assert "access_token" in register_func
     assert register_func["token_type"] == "bearer"
+
 
 async def test_login_user(db):
     user_data = UserCreate(username="Pupok", password="pass")

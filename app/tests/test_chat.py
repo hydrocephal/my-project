@@ -12,17 +12,12 @@ async def test_user_from_token(db):
     assert result is not None
     assert result.username == "GenaPupkin"
 
-async def test_websocket_connect(sync_client):
-    sync_client.post("/auth/register", json={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
-    response = sync_client.post("/auth/token", data={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
 
-    token = response.json()["access_token"] 
+async def test_websocket_connect(sync_client):
+    sync_client.post("/auth/register", json={"username": "GenaPupkin", "password": "secretpass"})
+    response = sync_client.post("/auth/token", data={"username": "GenaPupkin", "password": "secretpass"})
+
+    token = response.json()["access_token"]
 
     with sync_client.websocket_connect("/ws") as ws:
         ws.send_json({"token": token})
@@ -31,17 +26,12 @@ async def test_websocket_connect(sync_client):
         assert data["type"] == "system"
         assert "GenaPupkin" in data["content"]
 
-async def test_websocket_online(sync_client):
-    sync_client.post("/auth/register", json={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
-    response = sync_client.post("/auth/token", data={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
 
-    token = response.json()["access_token"] 
+async def test_websocket_online(sync_client):
+    sync_client.post("/auth/register", json={"username": "GenaPupkin", "password": "secretpass"})
+    response = sync_client.post("/auth/token", data={"username": "GenaPupkin", "password": "secretpass"})
+
+    token = response.json()["access_token"]
 
     with sync_client.websocket_connect("/ws") as ws:
         ws.send_json({"token": token})
@@ -53,31 +43,19 @@ async def test_websocket_online(sync_client):
     assert data["type"] == "system"
     assert "GenaPupkin" in data["content"]
 
+
 async def test_message(sync_client):
-    sync_client.post("/auth/register", json={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
-    response = sync_client.post("/auth/token", data={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
+    sync_client.post("/auth/register", json={"username": "GenaPupkin", "password": "secretpass"})
+    response = sync_client.post("/auth/token", data={"username": "GenaPupkin", "password": "secretpass"})
 
     token1 = response.json()["access_token"]
 
-    sync_client.post("/auth/register", json={
-        "username": "Eblan",
-        "password": "Eblan"
-    })
-    response = sync_client.post("/auth/token", data={
-        "username": "Eblan",
-        "password": "Eblan"
-    })
+    sync_client.post("/auth/register", json={"username": "Eblan", "password": "Eblan"})
+    response = sync_client.post("/auth/token", data={"username": "Eblan", "password": "Eblan"})
 
-    token2 = response.json()["access_token"] 
-    
-    with sync_client.websocket_connect("/ws") as ws1, \
-        sync_client.websocket_connect("/ws") as ws2:
+    token2 = response.json()["access_token"]
+
+    with sync_client.websocket_connect("/ws") as ws1, sync_client.websocket_connect("/ws") as ws2:
         ws1.send_json({"token": token1})
         ws1.receive_json()
 
@@ -85,37 +63,25 @@ async def test_message(sync_client):
         ws2.receive_json()
         ws1.receive_json()
 
-        ws1.send_json({"content": "See ya champ"})        
-        
+        ws1.send_json({"content": "See ya champ"})
+
         message = ws2.receive_json()
         print(message)
     assert "See ya champ" in message["content"]
 
+
 async def test_disconnect_reconnect_history(sync_client):
-    sync_client.post("/auth/register", json={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
-    response = sync_client.post("/auth/token", data={
-        "username": "GenaPupkin",
-        "password": "secretpass"
-    })
+    sync_client.post("/auth/register", json={"username": "GenaPupkin", "password": "secretpass"})
+    response = sync_client.post("/auth/token", data={"username": "GenaPupkin", "password": "secretpass"})
 
     token1 = response.json()["access_token"]
 
-    sync_client.post("/auth/register", json={
-        "username": "Eblan",
-        "password": "Eblan"
-    })
-    response = sync_client.post("/auth/token", data={
-        "username": "Eblan",
-        "password": "Eblan"
-    })
+    sync_client.post("/auth/register", json={"username": "Eblan", "password": "Eblan"})
+    response = sync_client.post("/auth/token", data={"username": "Eblan", "password": "Eblan"})
 
-    token2 = response.json()["access_token"] 
-    
-    with sync_client.websocket_connect("/ws") as ws1, \
-        sync_client.websocket_connect("/ws") as ws2:
+    token2 = response.json()["access_token"]
+
+    with sync_client.websocket_connect("/ws") as ws1, sync_client.websocket_connect("/ws") as ws2:
         ws1.send_json({"token": token1})
         ws1.receive_json()
         ws1.send_json({"content": "See ya champ"})
@@ -130,7 +96,7 @@ async def test_disconnect_reconnect_history(sync_client):
         left = ws2.receive_json()
         print(left)
     assert "GenaPupkin left the chat" in left["content"]
-    
+
     with sync_client.websocket_connect("/ws") as ws1:
         ws1.send_json({"token": token1})
         ws1.receive_json()
