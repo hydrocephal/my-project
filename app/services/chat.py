@@ -9,8 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
+from app.core.redis import redis_client
 from app.db.database import SessionLocal
 from app.models.models import Message, User
+
+CHANNEL = "chat"
 
 
 class ConnectionManager:
@@ -21,13 +24,18 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, user_id: int, username: str):
         async with self._lock:
             self.active_connections.append((websocket, user_id, username))
-        await self.broadcast({"type": "system", "content": f"{username} joined the chat."})
+        await redis_client.sadd("online_users", username)
+        await self.publish({"type": "system", "content": f"{username} joined the chat."})
 
-    async def disconnect(self, websocket: WebSocket):  # add logs with usernames
+    async def disconnect(self, websocket: WebSocket, username: str):
         async with self._lock:
             self.active_connections = [c for c in self.active_connections if c[0] != websocket]
+        await redis_client.srem("online_users", username)
 
-    async def broadcast(self, message: dict):
+    async def publish(self, message: dict):
+        await redis_client.publish(CHANNEL, json.dumps(message))
+
+    async def broadcast_local(self, message: dict):
         async def send_or_mark_dead(connection):
             try:
                 await connection[0].send_json(message)
@@ -47,11 +55,22 @@ class ConnectionManager:
                     if connection in self.active_connections:
                         self.active_connections.remove(connection)
 
-    def get_online_users(self):
-        return [c[2] for c in self.active_connections]
+    async def get_online_users(self):
+        return list(await redis_client.smembers("online_users"))
 
 
 manager = ConnectionManager()
+
+
+async def listen_pubsub():
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe(CHANNEL)
+    while True:
+        message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+        if message is not None:
+            data = json.loads(message["data"])
+            await manager.broadcast_local(data)
+        await asyncio.sleep(0)
 
 
 async def get_user_from_token(token: str, db: AsyncSession):
@@ -102,7 +121,7 @@ async def websocket_connection_logic(websocket: WebSocket):
             message_data = json.loads(data)
 
             if message_data.get("command") == "online":
-                online_users = manager.get_online_users()
+                online_users = await manager.get_online_users()
                 await websocket.send_json({"type": "system", "content": f"Online users: {', '.join(online_users)}"})
                 continue
             content = message_data.get("content")
@@ -113,7 +132,7 @@ async def websocket_connection_logic(websocket: WebSocket):
                         session.add(new_msg)
                         await session.commit()
 
-                        await manager.broadcast(
+                        await manager.broadcast_local(
                             {
                                 "type": "message",
                                 "username": user.username,
@@ -125,7 +144,7 @@ async def websocket_connection_logic(websocket: WebSocket):
                         await session.rollback()
 
     except WebSocketDisconnect:
-        await manager.disconnect(websocket)
-        await manager.broadcast({"type": "system", "content": f"{user.username} left the chat."})
+        await manager.disconnect(websocket, user.username)
+        await manager.broadcast_local({"type": "system", "content": f"{user.username} left the chat."})
     except RuntimeError:
-        await manager.disconnect(websocket)
+        await manager.disconnect(websocket, user.username)

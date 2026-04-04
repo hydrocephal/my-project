@@ -15,9 +15,9 @@
    
    - `joinedload(Message.sender)` is used to preload users. The loop no longer makes additional database queries.
 
-4. **Dead connections in broadcast**
+4. **Dead connections in broadcast_local**
    
-   - Updated the `broadcast` method to send in parallel via `asyncio.gather()`.
+   - Updated the `broadcast_local` method to send in parallel via `asyncio.gather()`.
    
    - Disconnected connections are removed from the `active_connections` list.
 
@@ -97,13 +97,13 @@ The line `sender = db.query(User)...` inside the loop is removed entirely — `m
 
 ___
 
-4. Dead connections in broadcast — `pass` on an error does not remove the connection from the list.
-   The next broadcast will attempt to send to it again.
+4. Dead connections in broadcast_local — `pass` on an error does not remove the connection from the list.
+   The next broadcast_local will attempt to send to it again.
    
-   - Solution: Changed sequential sending to parallel using `asyncio.gather` and a loop via a list comprehension, also adding a loop to remove dead connections, which will occur on every call to the `broadcast` function
+   - Solution: Changed sequential sending to parallel using `asyncio.gather` and a loop via a list comprehension, also adding a loop to remove dead connections, which will occur on every call to the `broadcast_local` function
 
 ```
-    async def broadcast(self, message: dict):
+    async def broadcast_local(self, message: dict):
         async def send_or_mark_dead(connection):
             try:
                 await connection[0].send_json(message)
@@ -137,7 +137,7 @@ class ConnectionManager:
         async with self._lock:
             await websocket.accept()
             self.active_connections.append((websocket, user_id, username))
-            await self.broadcast({“type”: “system”, ‘content’: f“{username} joined the chat.”})
+            await self.broadcast_local({“type”: “system”, ‘content’: f“{username} joined the chat.”})
 
 
     async def disconnect(self, websocket: WebSocket):             #add logs with usernames

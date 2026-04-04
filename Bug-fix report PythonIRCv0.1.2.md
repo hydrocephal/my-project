@@ -11,17 +11,17 @@
 
 ---
 
-### Broadcast sent before guaranteed DB commit
+### Broadcast_local sent before guaranteed DB commit
 `chat.py → message receive loop`
 
-`broadcast()` находился снаружи `try` блока — если `commit()` падал с исключением, сообщение всё равно уходило всем пользователям, хотя в базе его не было.
+`broadcast_local()` находился снаружи `try` блока — если `commit()` падал с исключением, сообщение всё равно уходило всем пользователям, хотя в базе его не было.
 
-**Fix:** `broadcast()` перенесён внутрь `try`, после `commit()`. При любом исключении вызывается `session.rollback()` и broadcast не выполняется.
+**Fix:** `broadcast_local()` перенесён внутрь `try`, после `commit()`. При любом исключении вызывается `session.rollback()` и broadcast_local не выполняется.
 
 ---
 
-### Race condition in ConnectionManager.broadcast()
-`chat.py → ConnectionManager.broadcast()`
+### Race condition in ConnectionManager.broadcast_local()
+`chat.py → ConnectionManager.broadcast_local()`
 
 `asyncio.gather()` вызывался внутри лока — это значит что пока шла отправка всем пользователям, новые подключения не могли добавиться в список, они просто висели и ждали.
 

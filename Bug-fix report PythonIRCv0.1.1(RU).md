@@ -15,9 +15,9 @@
    
    - Использован `joinedload(Message.sender)` для предзагрузки пользователей. Цикл теперь не делает дополнительных запросов к БД.
 
-4. **Мёртвые соединения в broadcast**
+4. **Мёртвые соединения в broadcast_local**
    
-   - Обновлён метод `broadcast` на параллельную отправку через `asyncio.gather()`.
+   - Обновлён метод `broadcast_local` на параллельную отправку через `asyncio.gather()`.
    
    - Отвалившиеся соединения удаляются из списка `active_connections`.
 
@@ -102,13 +102,13 @@ for msg in reversed(last_messages):
 
 ---
 
-4. Мёртвые соединения в broadcast — `pass` при ошибке не удаляет соединение из списка.  
-   Следующий broadcast снова попытается туда отправить.
+4. Мёртвые соединения в broadcast_local — `pass` при ошибке не удаляет соединение из списка.  
+   Следующий broadcast_local снова попытается туда отправить.
    
-   - Решение: Последовательную отправку изменил на параллельную с помощью asyncio.gather и цикла через сокращение list comprehension также добавив цикл для удаления мертвых соединений который будет будет происходить при каждом вызове функции broadcast
+   - Решение: Последовательную отправку изменил на параллельную с помощью asyncio.gather и цикла через сокращение list comprehension также добавив цикл для удаления мертвых соединений который будет будет происходить при каждом вызове функции broadcast_local
 
 ```
-    async def broadcast(self, message: dict):
+    async def broadcast_local(self, message: dict):
         async def send_or_mark_dead(connection):
             try:
                 await connection[0].send_json(message)
@@ -142,7 +142,7 @@ class ConnectionManager:
         async with self._lock:
             await websocket.accept()
             self.active_connections.append((websocket, user_id, username))
-            await self.broadcast({"type": "system", "content": f"{username} joined the chat."})
+            await self.broadcast_local({"type": "system", "content": f"{username} joined the chat."})
 
 
     async def disconnect(self, websocket: WebSocket):             #add logs with usernames
