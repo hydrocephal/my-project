@@ -1,6 +1,8 @@
 import asyncio
 import sys
+from unittest.mock import patch
 
+import fakeredis.aioredis
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -9,6 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.core.redis import redis_client
 from app.db.database import Base, SessionLocal, get_db
 from app.main import app
 from app.services import chat as chat_service
@@ -37,6 +40,13 @@ def event_loop():
     loop.close()
 
 
+@pytest.fixture(autouse=True)
+def mock_redis():
+    fake = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    with patch("app.services.chat.redis_client", fake), patch("app.core.redis.redis_client", fake):
+        yield
+
+
 @pytest.fixture
 def sync_client():
     async def override_get_db():
@@ -50,6 +60,9 @@ def sync_client():
     async def drop_tables():
         async with test_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
+
+    async def clear_redis():
+        await redis_client.delete("online_users")
 
     asyncio.get_event_loop().run_until_complete(create_tables())
     chat_service.SessionLocal = TestSessionLocal
