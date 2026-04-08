@@ -9,9 +9,9 @@ FROM python:3.12-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
-COPY --from=builder /app/.venv /app/.venv
+COPY --chown=appuser:appgroup --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
-COPY . .
-RUN chown -R appuser:appgroup /app && chmod +x entrypoint.sh
+COPY --chown=appuser:appgroup . .
+RUN chmod +x entrypoint.sh
 USER appuser
 CMD ["./entrypoint.sh"]
