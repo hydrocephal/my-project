@@ -10,28 +10,71 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - irc-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irc_user -d irc_chat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     container_name: irc-redis
     ports:
       - "6379:6379"
+    networks:
+      - irc-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: irc-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - irc-network
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus
     container_name: irc-prometheus
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    networks:
+      - irc-network
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana
     container_name: irc-grafana
     ports:
       - "3000:3000"
-  
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - irc-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  grafana_data:
+
+networks:
+  irc-network:
+    driver: bridge

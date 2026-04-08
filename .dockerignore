@@ -1,0 +1,48 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Окружение
+.env
+.env.*
+!.env.example
+
+# Документация и отчёты
+*.md
+Bug-fix report*
+CHANGELOG*
+README*
+
+# Тесты
+tests/
+app/tests/
+.pytest_cache/
+
+
+# Клиент (не нужен на сервере)
+client/
+
+# Docker
+.dockerignore
+docker-compose.yml
+Dockerfile
+
+# Конфиги которые монтируются
+prometheus.yml
+.pre-commit-config.yaml
+pyproject.toml
