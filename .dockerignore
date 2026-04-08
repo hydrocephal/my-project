@@ -45,4 +45,3 @@ Dockerfile
 # Конфиги которые монтируются
 prometheus.yml
 .pre-commit-config.yaml
-pyproject.toml
