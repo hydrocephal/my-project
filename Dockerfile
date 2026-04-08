@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 COPY . .
+RUN chown -R appuser:appgroup /app
 RUN chmod +x entrypoint.sh
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 USER appuser
