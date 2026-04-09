@@ -50,3 +50,15 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://irc_user:irc_password@localhost:5432/irc_chat_test
           REDIS_URL: redis://localhost:6379
         run: uv run pytest app/tests/
+
+  deploy:
+    runs-on: self-hosted
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy
+        run: |
+          cd /opt/PythonIRC
+          git pull origin main
+          docker compose up -d --build

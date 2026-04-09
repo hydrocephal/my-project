@@ -13,5 +13,6 @@ COPY --chown=appuser:appgroup --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 COPY --chown=appuser:appgroup . .
 RUN chmod +x entrypoint.sh
+RUN mkdir -p /app/.gunicorn && chown appuser:appgroup /app/.gunicorn
 USER appuser
 CMD ["./entrypoint.sh"]
